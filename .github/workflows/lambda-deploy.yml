@@ -16,6 +16,42 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Inspect GitHub OIDC claims
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+
+          request_url = (
+              os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"]
+              + "&audience="
+              + urllib.parse.quote("sts.amazonaws.com")
+          )
+          request = urllib.request.Request(
+              request_url,
+              headers={
+                  "Authorization": (
+                      "Bearer "
+                      + os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]
+                  )
+              },
+          )
+
+          with urllib.request.urlopen(request) as response:
+              token = json.load(response)["value"]
+
+          payload = token.split(".")[1]
+          payload += "=" * (-len(payload) % 4)
+          claims = json.loads(base64.urlsafe_b64decode(payload))
+
+          for field in ("iss", "aud", "sub"):
+              print(f"{field}: {claims.get(field)}")
+          PY
+
       - name: Configure AWS credentials with OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
