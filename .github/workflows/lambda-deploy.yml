@@ -21,6 +21,10 @@ permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: wistia-lambda-${{ inputs.target }}
+  cancel-in-progress: false
+
 jobs:
   verify-aws:
     name: Verify AWS Deployment Access
@@ -107,4 +111,33 @@ jobs:
           aws lambda get-function-configuration \
             --function-name wistia-pipeline-scheduler-dev \
             --query '{FunctionName:FunctionName,Runtime:Runtime,State:State,LastUpdateStatus:LastUpdateStatus}' \
+            --output json
+      - name: Deploy ingestion Lambda
+        if: ${{ inputs.target == 'ingestion' && inputs.confirmation == 'DEPLOY' }}
+        run: |
+          aws lambda update-function-code \
+            --function-name wistia-events-ingestion-dev \
+            --zip-file fileb://build/lambda/wistia-events-ingestion.zip
+
+          aws lambda wait function-updated \
+            --function-name wistia-events-ingestion-dev
+
+          aws lambda get-function-configuration \
+            --function-name wistia-events-ingestion-dev \
+            --query '{FunctionName:FunctionName,Runtime:Runtime,LastUpdateStatus:LastUpdateStatus,CodeSha256:CodeSha256}' \
+            --output json
+
+      - name: Deploy scheduler Lambda
+        if: ${{ inputs.target == 'scheduler' && inputs.confirmation == 'DEPLOY' }}
+        run: |
+          aws lambda update-function-code \
+            --function-name wistia-pipeline-scheduler-dev \
+            --zip-file fileb://build/lambda/wistia-pipeline-scheduler.zip
+
+          aws lambda wait function-updated \
+            --function-name wistia-pipeline-scheduler-dev
+
+          aws lambda get-function-configuration \
+            --function-name wistia-pipeline-scheduler-dev \
+            --query '{FunctionName:FunctionName,Runtime:Runtime,LastUpdateStatus:LastUpdateStatus,CodeSha256:CodeSha256}' \
             --output json
