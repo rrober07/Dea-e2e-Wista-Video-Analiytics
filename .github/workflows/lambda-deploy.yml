@@ -1,0 +1,42 @@
+name: Deploy Wistia Lambdas
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  verify-aws:
+    name: Verify AWS Deployment Access
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::214118274300:role/WistiaGitHubDeployRole
+          aws-region: us-east-1
+          role-session-name: WistiaGitHubDeployVerify
+
+      - name: Verify AWS identity
+        run: |
+          aws sts get-caller-identity
+
+      - name: Verify ingestion Lambda access
+        run: |
+          aws lambda get-function-configuration \
+            --function-name wistia-events-ingestion-dev \
+            --query '{FunctionName:FunctionName,Runtime:Runtime,State:State,LastUpdateStatus:LastUpdateStatus}' \
+            --output json
+
+      - name: Verify scheduler Lambda access
+        run: |
+          aws lambda get-function-configuration \
+            --function-name wistia-pipeline-scheduler-dev \
+            --query '{FunctionName:FunctionName,Runtime:Runtime,State:State,LastUpdateStatus:LastUpdateStatus}' \
+            --output json
