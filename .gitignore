@@ -1,0 +1,57 @@
+# Python environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+**/secrets.toml
+*credentials*.json
+*credentials*.csv
+*.pem
+*.key
+
+# Build artifacts
+build/
+dist/
+*.zip
+*.whl
+*.egg-info/
+
+# Local backups
+*.py.bak
+*.backup
+*.bak
+.gitignore.backup
+
+# Temporary files and logs
+*.log
+*.tmp
+*.temp
+*.pid
+
+# IDE and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local AWS CLI outputs
+*-test-response.json
+scheduler-idempotency-test-*.json
+
+# Draw.io temporary and backup files
+*.drawio.bkp
+*.drawio.autosave
+
+_archive/

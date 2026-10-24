@@ -1,0 +1,26 @@
+{
+  "Name": "wistia-silver-to-gold-manifest-dev",
+  "Role": "arn:aws:iam::214118274300:role/WistiaGlueExecutionRole",
+  "GlueVersion": "5.1",
+  "WorkerType": "G.1X",
+  "NumberOfWorkers": 2,
+  "Command": {
+    "Name": "glueetl",
+    "ScriptLocation": "s3://wistia-video-analytics-dev/scripts/glue/wistia_silver_to_gold_manifest.py",
+    "PythonVersion": "3"
+  },
+  "DefaultArguments": {
+    "--BUCKET": "wistia-video-analytics-dev",
+    "--START_DATE": "2026-04-14",
+    "--END_DATE": "2026-04-14",
+    "--RUN_ID": "88406650-5ca2-4d7a-9525-9085a360de1f",
+    "--TempDir": "s3://wistia-video-analytics-dev/glue-temp/",
+    "--job-language": "python",
+    "--job-bookmark-option": "job-bookmark-disable",
+    "--enable-metrics": "",
+    "--enable-continuous-cloudwatch-log": "true",
+    "--enable-observability-metrics": "true"
+  },
+  "MaxRetries": 0,
+  "Timeout": 30
+}

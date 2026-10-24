@@ -1,0 +1,81 @@
+{
+  "Comment": "Wistia Video Analytics Bronze to Silver to Gold pipeline",
+  "StartAt": "BronzeIngestion",
+  "States": {
+    "BronzeIngestion": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:214118274300:function:wistia-events-ingestion-dev",
+        "Payload": {
+          "start_date.$": "$.start_date",
+          "end_date.$": "$.end_date"
+        }
+      },
+      "ResultPath": "$.bronze",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "CheckBronzeStatus"
+    },
+    "CheckBronzeStatus": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.bronze.Payload.status",
+          "StringEquals": "SUCCEEDED",
+          "Next": "SilverTransformation"
+        }
+      ],
+      "Default": "PipelineFailed"
+    },
+    "SilverTransformation": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "wistia-bronze-to-silver-manifest-dev",
+        "Arguments": {
+          "--BUCKET": "wistia-video-analytics-dev",
+          "--START_DATE.$": "$.bronze.Payload.start_date",
+          "--END_DATE.$": "$.bronze.Payload.end_date",
+          "--MANIFEST_KEY.$": "$.bronze.Payload.manifest_key"
+        }
+      },
+      "ResultPath": "$.silver",
+      "Next": "GoldTransformation"
+    },
+    "GoldTransformation": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "wistia-silver-to-gold-manifest-dev",
+        "Arguments": {
+          "--BUCKET": "wistia-video-analytics-dev",
+          "--START_DATE.$": "$.bronze.Payload.start_date",
+          "--END_DATE.$": "$.bronze.Payload.end_date",
+          "--RUN_ID.$": "$.bronze.Payload.run_id"
+        }
+      },
+      "ResultPath": "$.gold",
+      "Next": "PipelineSucceeded"
+    },
+    "PipelineSucceeded": {
+      "Type": "Succeed"
+    },
+    "PipelineFailed": {
+      "Type": "Fail",
+      "Error": "WistiaPipelineFailed",
+      "Cause": "Bronze ingestion did not report success"
+    }
+  }
+}
