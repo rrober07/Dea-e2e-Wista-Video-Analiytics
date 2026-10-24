@@ -1,0 +1,58 @@
+name: Python CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-python:
+    name: Validate Python Source
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate Python syntax
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+
+          directories = [
+              Path("python"),
+              Path("lambda"),
+              Path("glue/jobs"),
+              Path("streamlit"),
+          ]
+
+          files = []
+
+          for directory in directories:
+              if directory.exists():
+                  files.extend(directory.rglob("*.py"))
+
+          if not files:
+              raise SystemExit("FAIL: No Python files found.")
+
+          for path in sorted(files):
+              ast.parse(
+                  path.read_text(encoding="utf-8-sig"),
+                  filename=str(path),
+              )
+              print(f"PASS: {path}")
+
+          print(f"Validated {len(files)} Python files.")
+          PY
