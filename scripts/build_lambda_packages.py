@@ -78,6 +78,24 @@ def build_scheduler():
         )
 
 
+def build_watchdog():
+    with TemporaryDirectory() as temporary:
+        package = Path(temporary)
+
+        for name in (
+            "check_wistia_daily_execution.py",
+            "wistia_schedule_dates.py",
+        ):
+            source = ROOT / "lambda" / name
+            (package / name).write_bytes(source.read_bytes())
+
+        create_zip(
+            OUTPUT / "wistia-pipeline-watchdog.zip",
+            package,
+        )
+
+
 if __name__ == "__main__":
     build_ingestion()
     build_scheduler()
+    build_watchdog()

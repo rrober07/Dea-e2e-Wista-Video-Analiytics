@@ -12,6 +12,7 @@ on:
           - verify-only
           - ingestion
           - scheduler
+          - watchdog
       confirmation:
         description: "Enter DEPLOY to authorize a Lambda update"
         required: false
@@ -68,6 +69,10 @@ jobs:
               ],
               "wistia-pipeline-scheduler.zip": [
                   "start_wistia_pipeline.py",
+                  "wistia_schedule_dates.py",
+              ],
+              "wistia-pipeline-watchdog.zip": [
+                  "check_wistia_daily_execution.py",
                   "wistia_schedule_dates.py",
               ],
           }
@@ -139,5 +144,20 @@ jobs:
 
           aws lambda get-function-configuration \
             --function-name wistia-pipeline-scheduler-dev \
+            --query '{FunctionName:FunctionName,Runtime:Runtime,LastUpdateStatus:LastUpdateStatus,CodeSha256:CodeSha256}' \
+            --output json
+
+      - name: Deploy watchdog Lambda
+        if: ${{ inputs.target == 'watchdog' && inputs.confirmation == 'DEPLOY' }}
+        run: |
+          aws lambda update-function-code \
+            --function-name wistia-pipeline-watchdog-dev \
+            --zip-file fileb://build/lambda/wistia-pipeline-watchdog.zip
+
+          aws lambda wait function-updated \
+            --function-name wistia-pipeline-watchdog-dev
+
+          aws lambda get-function-configuration \
+            --function-name wistia-pipeline-watchdog-dev \
             --query '{FunctionName:FunctionName,Runtime:Runtime,LastUpdateStatus:LastUpdateStatus,CodeSha256:CodeSha256}' \
             --output json
